@@ -1,0 +1,1030 @@
+---
+title: "MD Real Estate Summary October 2022"
+author: "Divy Kangeyan"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    theme: yeti
+    highlight: tango
+    code_folding: hide
+    df_print: paged
+  pdf_document: default
+---
+
+```{=html}
+<style>
+body {
+text-align: justify
+}
+</style>
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = TRUE)
+suppressWarnings(suppressMessages(library(ggplot2)))
+suppressWarnings(suppressMessages(library(magrittr)))
+suppressWarnings(suppressMessages(library(dplyr)))
+suppressWarnings(suppressMessages(library(urbnmapr)))
+suppressWarnings(suppressMessages(library(gdata)))
+suppressWarnings(suppressMessages(library(stringr)))
+suppressWarnings(suppressMessages(library(urbnthemes)))
+suppressWarnings(suppressMessages(library(reshape2)))
+```
+
+```{r, echo=FALSE, out.width = '100%'}
+knitr::include_graphics("/Users/Divy/Documents/md_housing_data/md_counties.jpeg")
+```
+
+## Maryland housing Data: August 2022
+
+### Units Sold
+
+```{r cars}
+november_housing <- read.xls("/Users/Divy/Documents/md_housing_data/excel_files/November 2022 Housing Stats.xlsx", header = TRUE, skip = 1)
+
+table_column_names <- c('county_name', 'pct_change_median_sale_price', 'units_pending_2022', 'units_pending_2021', 'active_inventory_2022', 
+'active_inventory_2021', 'months_of_inventory_2022',
+'months_of_inventory_2021', 'median_dom_2022', 'median_dom_2021', 'new_listings_2022', 'units_sold_2022', 'new_listings_2021', 'units_sold_2021', 'pct_change_units_sold', 'average_sale_price_2022', 'average_sale_price_2021', 'pct_change_average_sale_price',
+'median_sale_price_2022', 'median_sale_price_2021')
+
+
+colnames(november_housing) <- table_column_names
+
+reformat_price <- function(vec){
+  reformatted_vec <- as.numeric(str_replace_all(vec, c("[$]" = "", "," = "")))
+  return(reformatted_vec)
+  
+}
+
+
+reformat_pct <- function(vec){
+  reformatted_vec <- as.numeric(str_replace_all(vec, c("[%]" = "", "," = "")))
+  return(reformatted_vec)
+  
+}
+
+reformat_count <- function(vec){
+  reformatted_vec <- as.numeric(str_replace_all(vec, c( "," = "")))
+  return(reformatted_vec)
+  
+}
+
+reformat_housing_df <- function(df){
+ reformatted_df <-  df %>% 
+  mutate(median_sale_price_2021 = reformat_price(df$median_sale_price_2021),
+         median_sale_price_2022 = reformat_price(df$median_sale_price_2022),
+         average_sale_price_2021 = 
+         reformat_price(df$average_sale_price_2021),
+         average_sale_price_2022 = reformat_price(df$average_sale_price_2022),
+         pct_change_median_sale_price = reformat_pct(df$pct_change_median_sale_price),
+         pct_change_units_sold = reformat_pct(df$pct_change_units_sold),
+         pct_change_average_sale_price = reformat_pct(df$pct_change_average_sale_price),
+         units_pending_2022 = reformat_count(df$units_pending_2022),
+         units_pending_2021 = reformat_count(df$units_pending_2021),
+         active_inventory_2022 = reformat_count(df$active_inventory_2022),
+         active_inventory_2021 = reformat_count(df$active_inventory_2021),
+         new_listings_2022 = reformat_count(df$new_listings_2022),
+         new_listings_2021 = reformat_count(df$new_listings_2021),
+         months_of_inventory_2022 = reformat_count(df$months_of_inventory_2022),
+         months_of_inventory_2021 = reformat_count(df$months_of_inventory_2021),
+         units_sold_2022 = reformat_count(df$units_sold_2022),
+         units_sold_2021 = reformat_count(df$units_sold_2021))
+ 
+ return(reformatted_df)
+}
+
+reformatted_november_housing <- reformat_housing_df(november_housing)
+reformatted_november_housing$month <- "October"
+
+maryland_fips_table <- reformatted_november_housing %>% 
+  left_join(urbnmapr::counties, by = "county_name") %>% 
+  filter(state_name =="Maryland")
+```
+
+#### 2021 - 2022 Comparison
+
+```{r, fig.width=25, fig.height=10}
+
+units_sold_df <- maryland_fips_table[, c('long', 'lat', 'units_sold_2021',
+                             'units_sold_2022', 'group')]
+
+units_sold_df_reformatted <- data.frame('units_sold' = c(units_sold_df$units_sold_2021, units_sold_df$units_sold_2022),
+                'long' = rep(units_sold_df$long, 2), 
+                'lat' = rep(units_sold_df$lat, 2),
+                'group' = rep(units_sold_df$group, 2),
+                'year' = c(rep('2021', length(units_sold_df$units_sold_2021)), 
+                           rep('2022', length(units_sold_df$units_sold_2022))))
+
+ggplot(mapping = aes(long, lat, group = group, fill = units_sold), data = units_sold_df_reformatted) +
+  geom_polygon(color = "#ffffff", size = .25) +
+  urbnthemes::scale_fill_gradientn(labels = scales::number,
+                                   guide = guide_colorbar(title.position = "top")) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  theme(legend.title = element_text(),
+        legend.key.width = unit(.5, "in")) + facet_grid(.~year) + 
+  labs(fill = "units_sold") + theme_bw() +   theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                                                          axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+                                                          panel.border = element_blank(), 
+                                                          panel.grid.major = element_blank(),
+                                                          panel.grid.minor = element_blank(),
+                                                          strip.text.x = element_text(size = 25),
+                                                          legend.title = element_text(size=30),
+                                                          legend.text = element_text(size=30),
+                                                          legend.key.size = unit(2, 'cm'))
+
+
+```
+
+#### % Change in Units Sold
+
+```{r}
+
+reformatted_november_housing$units_sold_change <- (reformatted_november_housing$units_sold_2022 - reformatted_november_housing$units_sold_2021) /
+  reformatted_november_housing$units_sold_2021 *100
+reformatted_november_housing$units_sold_change_color <- "green"
+reformatted_november_housing$units_sold_change_color[reformatted_november_housing$units_sold_change < 0] <- "red"
+
+reformatted_november_housing$just_county_name <- gsub(' County','',reformatted_november_housing$county_name)
+
+
+
+ggplot(aes(x = reorder(just_county_name, units_sold_change), y = units_sold_change,
+           fill = units_sold_change_color), 
+       data = reformatted_november_housing) + 
+  geom_bar(stat = "identity") + theme_bw() + xlab ('County') + 
+  ylab('% Change in \n Units Sold') +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.3, hjust=0.3),
+        axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  scale_fill_identity()
+
+```
+
+### Units Pending
+
+Pending: Now that the seller and the buyer have agreed to each other's terms and all contingencies have been met, the home is marked as pending and taken off the market
+
+Units Pending: Number of houses that reached pending status
+
+#### 2021 - 2022 Comparison
+
+```{r, fig.width=25, fig.height=15}
+
+units_pending_df <- maryland_fips_table[, c('long', 'lat',              'units_pending_2021',
+                             'units_pending_2022', 'group')]
+
+units_pending_df_reformatted <- data.frame('units_pending' = c(units_pending_df$units_pending_2021,
+                                                               units_pending_df$units_pending_2022),
+                'long' = rep(units_pending_df$long, 2), 
+                'lat' = rep(units_pending_df$lat, 2),
+                'group' = rep(units_pending_df$group, 2),
+                'year' = c(rep('2021', length(units_pending_df$units_pending_2021)), 
+                           rep('2022', length(units_pending_df$units_pending_2021))))
+
+ggplot(mapping = aes(long, lat, group = group, fill = units_pending), data = units_pending_df_reformatted) +
+  geom_polygon(color = "#ffffff", size = .25) +
+  urbnthemes::scale_fill_gradientn(labels = scales::number,
+                                   guide = guide_colorbar(title.position = "top")) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  theme(legend.title = element_text(),
+        legend.key.width = unit(.5, "in")) + facet_grid(.~year) + 
+  labs(fill = "units_pending") + theme_bw() +   theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                                                          axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+                                                          panel.border = element_blank(), 
+                                                          panel.grid.major = element_blank(),
+                                                          panel.grid.minor = element_blank(),
+                                                          strip.text.x = element_text(size = 25),
+                                                          legend.title = element_text(size=30),
+                                                          legend.text = element_text(size=30),
+                                                          legend.key.size = unit(2, 'cm'))
+
+
+```
+
+#### % Change in Units Pending
+
+```{r}
+
+reformatted_november_housing$units_pending_change <- (reformatted_november_housing$units_pending_2022 - reformatted_november_housing$units_pending_2021) /
+  reformatted_november_housing$units_pending_2021 *100
+reformatted_november_housing$units_pending_change_color <- "green"
+reformatted_november_housing$units_pending_change_color[reformatted_november_housing$units_pending_change < 0] <- "red"
+
+reformatted_november_housing$just_county_name <- gsub(' County','',reformatted_november_housing$county_name)
+
+
+
+ggplot(aes(x = reorder(just_county_name, units_pending_change), y = units_pending_change,
+           fill = units_pending_change_color), 
+       data = reformatted_november_housing) + 
+  geom_bar(stat = "identity") + theme_bw() + xlab ('County') + 
+  ylab('% Change in \n Units Pending') +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.3, hjust=0.3),
+        axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  scale_fill_identity()
+
+```
+
+### Active Inventory
+
+The inventory number is calculated by simply taking a count of the properties marked as active on the last day of the month
+
+#### 2021 - 2022 Comparison
+
+```{r, fig.width=25, fig.height=10}
+active_inventory_df <- maryland_fips_table[, c('long', 'lat', 'active_inventory_2021',
+                             'active_inventory_2022', 'group')]
+
+active_inventory_df_reformatted <- data.frame('active_inventory' = c(active_inventory_df$active_inventory_2021,
+                                                      active_inventory_df$active_inventory_2022),
+                'long' = rep(active_inventory_df$long, 2), 
+                'lat' = rep(active_inventory_df$lat, 2),
+                'group' = rep(active_inventory_df$group, 2),
+                'year' = c(rep('2021', length(active_inventory_df$active_inventory_2021)), 
+                           rep('2022', length(active_inventory_df$active_inventory_2022))))
+
+ggplot(mapping = aes(long, lat, group = group, fill = active_inventory), data = active_inventory_df_reformatted) +
+  geom_polygon(color = "#ffffff", size = .25) +
+  urbnthemes::scale_fill_gradientn(labels = scales::number,
+                                   guide = guide_colorbar(title.position = "top")) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  theme(legend.title = element_text(),
+        legend.key.width = unit(.5, "in")) + facet_grid(.~year) + 
+  labs(fill = "average_sale_price") + theme_bw() +   theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                                                          axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+                                                          panel.border = element_blank(), 
+                                                          panel.grid.major = element_blank(),
+                                                          panel.grid.minor = element_blank(),
+                                                          strip.text.x = element_text(size = 25),
+                                                          legend.title = element_text(size=30),
+                                                          legend.text = element_text(size=30),
+                                                          legend.key.size = unit(2, 'cm'))
+```
+
+#### % Change in Active Inventory
+
+```{r}
+reformatted_november_housing$active_inventory_change <- (reformatted_november_housing$active_inventory_2022 - reformatted_november_housing$active_inventory_2021) /
+  reformatted_november_housing$active_inventory_2021 *100
+reformatted_november_housing$active_inventory_change_color <- "green"
+reformatted_november_housing$active_inventory_change_color[reformatted_november_housing$active_inventory_change < 0] <- "red"
+
+reformatted_november_housing$just_county_name <- gsub(' County','',reformatted_november_housing$county_name)
+
+
+
+ggplot(aes(x = reorder(just_county_name, active_inventory_change), y = active_inventory_change,
+           fill = active_inventory_change_color), 
+       data = reformatted_november_housing) + 
+  geom_bar(stat = "identity") + theme_bw() + xlab ('County') + 
+  ylab('% Change in \n Active Inventory') +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.3, hjust=0.3),
+        axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  scale_fill_identity()
+
+```
+
+### Average Sale Price
+
+#### 2021 - 2022 Comparison
+
+```{r, fig.width=25, fig.height=15}
+
+average_sale_price_df <- maryland_fips_table[, c('long', 'lat','average_sale_price_2021',
+                             'average_sale_price_2022', 'group')]
+
+average_sale_price_df_reformatted <- data.frame('average_sale_price' = c(average_sale_price_df$average_sale_price_2021,
+                                                      average_sale_price_df$average_sale_price_2022),
+                'long' = rep(average_sale_price_df$long, 2), 
+                'lat' = rep(average_sale_price_df$lat, 2),
+                'group' = rep(average_sale_price_df$group, 2),
+                'year' = c(rep('2021', length(average_sale_price_df$average_sale_price_2021)), 
+                           rep('2022', length(average_sale_price_df$average_sale_price_2022))))
+
+ggplot(mapping = aes(long, lat, group = group, fill = average_sale_price), data = average_sale_price_df_reformatted) +
+  geom_polygon(color = "#ffffff", size = .25) +
+  urbnthemes::scale_fill_gradientn(labels = scales::number,
+                                   guide = guide_colorbar(title.position = "top")) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  theme(legend.title = element_text(),
+        legend.key.width = unit(.5, "in")) + facet_grid(.~year) + 
+  labs(fill = "average_sale_price") + theme_bw() +   theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                                                          axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+                                                          panel.border = element_blank(), 
+                                                          panel.grid.major = element_blank(),
+                                                          panel.grid.minor = element_blank(),
+                                                          strip.text.x = element_text(size = 25),
+                                                          legend.title = element_text(size=30),
+                                                          legend.text = element_text(size=30),
+                                                          legend.key.size = unit(2, 'cm'))
+
+```
+
+#### % Change in Average Sale Price
+
+```{r}
+
+reformatted_november_housing$average_sale_price_change <- (reformatted_november_housing$average_sale_price_2022 - reformatted_november_housing$average_sale_price_2021) /
+  reformatted_november_housing$average_sale_price_2021 *100
+reformatted_november_housing$average_sale_price_change_color <- "green"
+reformatted_november_housing$average_sale_price_change_color[reformatted_november_housing$average_sale_price_change < 0] <- "red"
+
+reformatted_november_housing$just_county_name <- gsub(' County','',reformatted_november_housing$county_name)
+
+
+
+ggplot(aes(x = reorder(just_county_name, average_sale_price_change), y = average_sale_price_change,
+           fill = average_sale_price_change_color), 
+       data = reformatted_november_housing) + 
+  geom_bar(stat = "identity") + theme_bw() + xlab ('County') + 
+  ylab('% Change in \n Average Sale Price') +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.3, hjust=0.3),
+        axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  scale_fill_identity()
+
+```
+
+### Median Sale Price
+
+#### 2021 - 2022 Comparison
+
+```{r, fig.width=25, fig.height=15}
+median_sale_price_df <- maryland_fips_table[, c('long', 'lat','median_sale_price_2021',
+                             'median_sale_price_2022', 'group')]
+
+median_sale_price_df_reformatted <- data.frame('median_sale_price' = c(median_sale_price_df$median_sale_price_2021,
+                                                      median_sale_price_df$median_sale_price_2022),
+                'long' = rep(median_sale_price_df$long, 2), 
+                'lat' = rep(median_sale_price_df$lat, 2),
+                'group' = rep(median_sale_price_df$group, 2),
+                'year' = c(rep('2021', length(median_sale_price_df$median_sale_price_2021)), 
+                           rep('2022', length(median_sale_price_df$median_sale_price_2022))))
+
+ggplot(mapping = aes(long, lat, group = group, fill = median_sale_price), data = median_sale_price_df_reformatted) +
+  geom_polygon(color = "#ffffff", size = .25) +
+  urbnthemes::scale_fill_gradientn(labels = scales::number,
+                                   guide = guide_colorbar(title.position = "top")) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  theme(legend.title = element_text(),
+        legend.key.width = unit(.5, "in")) + facet_grid(.~year) + 
+  labs(fill = "median_sale_price") + theme_bw() +   theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                                                          axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+                                                          panel.border = element_blank(), 
+                                                          panel.grid.major = element_blank(),
+                                                          panel.grid.minor = element_blank(),
+                                                          strip.text.x = element_text(size = 25),
+                                                          legend.title = element_text(size=30),
+                                                          legend.text = element_text(size=30),
+                                                          legend.key.size = unit(2, 'cm'))
+```
+
+#### % Change in Median Sale Price
+
+```{r}
+reformatted_november_housing$median_sale_price_change <- (reformatted_november_housing$median_sale_price_2022 - reformatted_november_housing$median_sale_price_2021) /
+  reformatted_november_housing$median_sale_price_2021 *100
+reformatted_november_housing$median_sale_price_change_color <- "green"
+reformatted_november_housing$median_sale_price_change_color[reformatted_november_housing$median_sale_price_change < 0] <- "red"
+
+reformatted_november_housing$just_county_name <- gsub(' County','',reformatted_november_housing$county_name)
+
+
+
+ggplot(aes(x = reorder(just_county_name, median_sale_price_change), y = median_sale_price_change,
+           fill = median_sale_price_change_color), 
+       data = reformatted_november_housing) + 
+  geom_bar(stat = "identity") + theme_bw() + xlab ('County') + 
+  ylab('% Change in \n Median Sale Price') +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.3, hjust=0.3),
+        axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  scale_fill_identity()
+```
+
+### Median Days on Market
+
+Median DOM: 50% of the houses had active status below this number of days and 50% of the houses had active status above this number of days.
+
+#### 2021 - 2022 Comparison
+
+```{r, fig.width=25, fig.height=15}
+
+median_dom_df <- maryland_fips_table[, c('long', 'lat','median_dom_2021',
+                             'median_dom_2022', 'group')]
+
+median_dom_df_reformatted <- data.frame('median_dom' = c(median_dom_df$median_dom_2021,
+                                                      median_dom_df$median_dom_2022),
+                'long' = rep(median_dom_df$long, 2), 
+                'lat' = rep(median_dom_df$lat, 2),
+                'group' = rep(median_dom_df$group, 2),
+                'year' = c(rep('2021', length(median_dom_df$median_dom_2021)), 
+                           rep('2022', length(median_dom_df$median_dom_2022))))
+
+ggplot(mapping = aes(long, lat, group = group, fill = median_dom), data = median_dom_df_reformatted) +
+  geom_polygon(color = "#ffffff", size = .25) +
+  urbnthemes::scale_fill_gradientn(labels = scales::number,
+                                   guide = guide_colorbar(title.position = "top")) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  theme(legend.title = element_text(),
+        legend.key.width = unit(.5, "in")) + facet_grid(.~year) + 
+  labs(fill = "median_dom") + theme_bw() +   theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                                                          axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+                                                          panel.border = element_blank(), 
+                                                          panel.grid.major = element_blank(),
+                                                          panel.grid.minor = element_blank(),
+                                                          strip.text.x = element_text(size = 25),
+                                                          legend.title = element_text(size=30),
+                                                          legend.text = element_text(size=30),
+                                                          legend.key.size = unit(2, 'cm'))
+
+```
+
+#### % Change in Median Days on Market
+
+```{r}
+
+reformatted_november_housing$median_dom_change <- (reformatted_november_housing$median_dom_2022 - reformatted_november_housing$median_dom_2021) 
+reformatted_november_housing$median_dom_change_color <- "green"
+reformatted_november_housing$median_dom_change_color[reformatted_november_housing$median_dom_change < 0] <- "red"
+
+reformatted_november_housing$just_county_name <- gsub(' County','',reformatted_november_housing$county_name)
+
+
+
+ggplot(aes(x = reorder(just_county_name, median_dom_change), y = median_dom_change,
+           fill = median_dom_change_color), 
+       data = reformatted_november_housing) + 
+  geom_bar(stat = "identity") + theme_bw() + xlab ('County') + 
+  ylab('Change in \n Median Days on Market') +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.3, hjust=0.3),
+        axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  scale_fill_identity()
+```
+
+### Months of Inventory
+
+```{r, fig.width=25, fig.height=15}
+months_of_inventory_df <- maryland_fips_table[, c('long', 'lat','months_of_inventory_2021',
+                             'months_of_inventory_2022', 'group')]
+
+months_of_inventory_df_reformatted <- data.frame('months_of_inventory' = c(months_of_inventory_df$months_of_inventory_2021,
+                                                      months_of_inventory_df$months_of_inventory_2022),
+                'long' = rep(months_of_inventory_df$long, 2), 
+                'lat' = rep(months_of_inventory_df$lat, 2),
+                'group' = rep(months_of_inventory_df$group, 2),
+                'year' = c(rep('2021', length(months_of_inventory_df$months_of_inventory_2021)), 
+                           rep('2022', length(months_of_inventory_df$months_of_inventory_2022))))
+
+ggplot(mapping = aes(long, lat, group = group, fill = months_of_inventory), data = months_of_inventory_df_reformatted) +
+  geom_polygon(color = "#ffffff", size = .25) +
+  urbnthemes::scale_fill_gradientn(labels = scales::number,
+                                   guide = guide_colorbar(title.position = "top")) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  theme(legend.title = element_text(),
+        legend.key.width = unit(.5, "in")) + facet_grid(.~year) + 
+  labs(fill = "months_of_inventory") + theme_bw() +   theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                                                          axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+                                                          panel.border = element_blank(), 
+                                                          panel.grid.major = element_blank(),
+                                                          panel.grid.minor = element_blank(),
+                                                          strip.text.x = element_text(size = 25),
+                                                          legend.title = element_text(size=30),
+                                                          legend.text = element_text(size=30),
+                                                          legend.key.size = unit(2, 'cm'))
+
+```
+
+#### % Change in Months of Inventory
+
+```{r}
+reformatted_november_housing$months_of_inventory_change <- ((reformatted_november_housing$months_of_inventory_2022 - reformatted_november_housing$months_of_inventory_2021) / reformatted_november_housing$months_of_inventory_2021) * 100
+reformatted_november_housing$months_of_inventory_change_color <- "green"
+reformatted_november_housing$months_of_inventory_change_color[reformatted_november_housing$months_of_inventory_change < 0] <- "red"
+
+reformatted_november_housing$just_county_name <- gsub(' County','',reformatted_november_housing$county_name)
+
+
+
+ggplot(aes(x = reorder(just_county_name, months_of_inventory_change), y = months_of_inventory_change,
+           fill = months_of_inventory_change_color), 
+       data = reformatted_november_housing) + 
+  geom_bar(stat = "identity") + theme_bw() + xlab ('County') + 
+  ylab('% Change in \n Months of Inventory') +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.3, hjust=0.3),
+        axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  scale_fill_identity()
+
+```
+
+### New Listings
+
+#### 2021 - 2022 Comparison
+
+```{r, fig.width=25, fig.height=15}
+new_listings_df <- maryland_fips_table[, c('long', 'lat','new_listings_2021',
+                             'new_listings_2022', 'group')]
+
+new_listings_df_reformatted <- data.frame('new_listings' = c(new_listings_df$new_listings_2021,
+  new_listings_df$new_listings_2022),
+                'long' = rep(new_listings_df$long, 2), 
+                'lat' = rep(new_listings_df$lat, 2),
+                'group' = rep(new_listings_df$group, 2),
+                'year' = c(rep('2021', length(new_listings_df$new_listings_2021)), 
+                           rep('2022', length(new_listings_df$new_listings_2022))))
+
+ggplot(mapping = aes(long, lat, group = group, fill = new_listings), data = new_listings_df_reformatted) +
+  geom_polygon(color = "#ffffff", size = .25) +
+  urbnthemes::scale_fill_gradientn(labels = scales::number,
+                                   guide = guide_colorbar(title.position = "top")) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  theme(legend.title = element_text(),
+        legend.key.width = unit(.5, "in")) + facet_grid(.~year) + 
+  labs(fill = "months_of_inventory") + theme_bw() +   theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+                                                          axis.title.y=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+                                                          panel.border = element_blank(), 
+                                                          panel.grid.major = element_blank(),
+                                                          panel.grid.minor = element_blank(),
+                                                          strip.text.x = element_text(size = 25),
+                                                          legend.title = element_text(size=30),
+                                                          legend.text = element_text(size=30),
+                                                          legend.key.size = unit(2, 'cm'))
+
+```
+
+#### % Change in New Listings
+
+```{r}
+reformatted_november_housing$new_listings_change <- ((reformatted_november_housing$new_listings_2022 - reformatted_november_housing$new_listings_2021) / reformatted_november_housing$new_listings_2021) * 100
+reformatted_november_housing$new_listings_change_color <- "green"
+reformatted_november_housing$new_listings_change_color[reformatted_november_housing$new_listings_change < 0] <- "red"
+
+reformatted_november_housing$just_county_name <- gsub(' County','',reformatted_november_housing$county_name)
+
+
+
+ggplot(aes(x = reorder(just_county_name, new_listings_change), y = new_listings_change,
+           fill = new_listings_change_color), 
+       data = reformatted_november_housing) + 
+  geom_bar(stat = "identity") + theme_bw() + xlab ('County') + 
+  ylab('% Change in \n New Listings') +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.3, hjust=0.3),
+        axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  scale_fill_identity()
+
+```
+
+## Conclusions
+
+Maryland consists of 23 counties and Baltimore City. Altogether 24 regions.
+
+-   Units sold is down in every county except for Dorchester county
+    -   Range of % YoY Change in Units sold is -51% to 15%
+-   Pending Sales is down in all but Allegany county
+    -   Range of % YoY Change in Units pending is -52% to 34%
+-   Active Inventory is up in 5/24 regions
+    -   Range of % YoY Change in Active Inventory is -39.2% to 25.4%
+-   Average sale price is down in 3/24 regions
+    -   Range of % YoY Change in Average Sale Price is -8.23% to 24.9%
+-   Median sale price is down in 6/24 regions
+    -   Range of % YoY Change in Median Sale Price is -15.9% to 27%
+-   Median days on market is down in 3/24 regions and Median DOM is up in 20/24 regions. In 1/24 regions median DOM is unchanged
+    -   In Somerset county YoY median DOM decreased by 16 days and in Garett county it increased by 12 days
+-   Months of inventory is up in 11 counties and unchanged in 3 counties. In rest of the regions months of inventory is down.
+    -   Range of % YoY Change in Months of Inventory is -32.4% to 61.9%
+-   New Listings are down in all of the regions except for Allegany and Talbot counties.
+    -   Range of % YoY Change in New Listings is -46.3% to 4.76%
+
+```{r, fig.width=25, fig.height=15}
+
+reformatted_november_housing$county <- reformatted_november_housing$county_name
+melted_moco_november_df <- melt(reformatted_november_housing, id.vars = c("county", "month"))
+
+melted_moco_november_df$year <- 0
+melted_moco_november_df$year[grep('2021', melted_moco_november_df$variable)] <- 2021
+melted_moco_november_df$year[grep('2022',melted_moco_november_df$variable)] <- 2022
+
+melted_moco_november_df <- melted_moco_november_df[melted_moco_november_df$county == "Montgomery County",]
+
+melted_moco_df_jan_september <- read.table("/Users/Divy/Documents/md_housing_data/tsv_files/reformatted_jan_september_2022.tsv",
+                                       sep = "\t", header = TRUE)
+
+melted_moco_df_jan_november <- rbind(melted_moco_november_df, melted_moco_df_jan_november)
+
+write.table(melted_moco_df_jan_november, "/Users/Divy/Documents/md_housing_data/reformatted_jan_november_2022.tsv", 
+            sep = '\t', row.names = FALSE)
+
+```
+
+## Montgomery County trend: January - October 2022
+
+### Units Sold
+
+```{r}
+melted_moco_df_units_sold <- melted_moco_df_jan_november[grep('units_sold_[0-9]', melted_moco_df_jan_november$variable),]
+
+melted_moco_df_units_sold$value <- as.numeric(melted_moco_df_units_sold$value)
+melted_moco_df_units_sold$year <- as.factor(melted_moco_df_units_sold$year)
+melted_moco_df_units_sold$month <- factor(melted_moco_df_units_sold$month,
+                                          levels = c('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'))
+
+ggplot(data = melted_moco_df_units_sold,
+       aes(x = month, y = value,
+                                 color = year,
+           group = year)) + 
+ geom_line() +
+  geom_point(aes(size = 1.5)) + 
+  
+  xlab('Month') + guides(size = FALSE) + 
+  ylab('Units Sold') + theme_bw()
+```
+
+#### % Change in Units Sold
+
+```{r}
+units_sold_2022 <- melted_moco_df_units_sold$value[melted_moco_df_units_sold$year == 2022]
+units_sold_2021 <- melted_moco_df_units_sold$value[melted_moco_df_units_sold$year == 2021]
+
+units_sold_pct_diff <- ((units_sold_2022 - units_sold_2021)/units_sold_2021) * 100
+
+
+units_sold_diff_df <- data.frame('pct_diff' = units_sold_pct_diff, 'month' = unique(melted_moco_df_units_sold$month))
+
+units_sold_diff_df$color_code <- 'green'
+units_sold_diff_df$color_code[units_sold_diff_df$pct_diff < 0] <- 'red'
+
+
+ggplot(data = units_sold_diff_df, 
+       aes(x = month, y = pct_diff, fill = color_code)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label=round(pct_diff, 2)), position=position_dodge(width=0.9), vjust=-0.1) +
+  theme_bw() + 
+  ylab('% Change in \n Units Sold') + xlab('') + scale_fill_identity()
+
+
+```
+
+### Units Pending
+
+```{r}
+
+melted_moco_df_units_pending <- melted_moco_df_jan_november[grep('units_pending_[0-9]',melted_moco_df_jan_november$variable),]
+
+
+melted_moco_df_units_pending$value <- as.numeric(melted_moco_df_units_pending$value)
+melted_moco_df_units_pending$year <- as.factor(melted_moco_df_units_pending$year)
+melted_moco_df_units_pending$month <- factor(melted_moco_df_units_pending$month,
+                                          levels = c('January', 'February', 'March', 'April', 'May',
+                                                     'June', 'July', 'August', 'September', 'October'))
+
+ggplot(data = melted_moco_df_units_pending,
+       aes(x = month, y = value,
+                                 color = year,
+           group = year)) + 
+ geom_line() +
+  geom_point(aes(size = 1.5)) + 
+  
+  xlab('Month') + guides(size = FALSE) + 
+  ylab('Units Pending') + theme_bw()
+```
+
+#### % Change in Units Pending
+
+```{r}
+units_pending_2022 <- melted_moco_df_units_pending$value[melted_moco_df_units_pending$year == 2022]
+units_pending_2021 <- melted_moco_df_units_pending$value[melted_moco_df_units_pending$year == 2021]
+
+units_pending_pct_diff <- ((units_pending_2022 - units_pending_2021)/units_pending_2021) * 100
+
+
+units_pending_diff_df <- data.frame('pct_diff' = units_pending_pct_diff, 'month' = unique(melted_moco_df_units_pending$month))
+
+units_pending_diff_df$color_code <- 'green'
+units_pending_diff_df$color_code[units_pending_diff_df$pct_diff < 0] <- 'red'
+
+
+ggplot(data = units_pending_diff_df, 
+       aes(x = month, y = pct_diff, fill = color_code)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label=round(pct_diff, 2)), position=position_dodge(width=0.9), vjust=-0.1) +
+  theme_bw() + ylab('% Change in \n Units Pending') + xlab('') + scale_fill_identity()
+
+```
+
+### Active Inventory
+
+```{r}
+
+melted_moco_df_active_inventory <- melted_moco_df_jan_november[grep('active_inventory_[0-9]',melted_moco_df_jan_november$variable),]
+
+
+melted_moco_df_active_inventory$value <- as.numeric(melted_moco_df_active_inventory$value)
+melted_moco_df_active_inventory$year <- as.factor(melted_moco_df_active_inventory$year)
+melted_moco_df_active_inventory$month <- factor(melted_moco_df_active_inventory$month,
+                                          levels = c('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'))
+
+ggplot(data = melted_moco_df_active_inventory,
+       aes(x = month, y = value,
+                                 color = year,
+           group = year)) + 
+ geom_line() +
+  geom_point(aes(size = 1.5)) + 
+  
+  xlab('Month') + guides(size = FALSE) + 
+  ylab('Units Pending') + theme_bw()
+```
+
+#### % Change in Active Inventory
+
+```{r}
+active_inventory_2022 <- melted_moco_df_active_inventory$value[melted_moco_df_active_inventory$year == 2022]
+active_inventory_2021 <- melted_moco_df_active_inventory$value[melted_moco_df_active_inventory$year == 2021]
+
+active_inventory_pct_diff <- ((active_inventory_2022 - active_inventory_2021)/active_inventory_2021) * 100
+
+
+active_inventory_diff_df <- data.frame('pct_diff' = active_inventory_pct_diff, 'month' = unique(melted_moco_df_active_inventory$month))
+
+active_inventory_diff_df$color_code <- 'green'
+active_inventory_diff_df$color_code[active_inventory_diff_df$pct_diff < 0] <- 'red'
+
+
+ggplot(data = active_inventory_diff_df, 
+       aes(x = month, y = pct_diff, fill = color_code)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label=round(pct_diff, 2)), position=position_dodge(width=0.9), vjust=-0.1) +
+  theme_bw() + ylab('% Change in \n Active Inventory') + xlab('') + scale_fill_identity()
+
+```
+
+### Average Sale Price
+
+```{r}
+
+
+melted_moco_df_average_sale_price <- melted_moco_df_jan_november[grep('average_sale_price_[0-9]',melted_moco_df_jan_november$variable),]
+
+melted_moco_df_average_sale_price$value <- as.numeric(melted_moco_df_average_sale_price$value)
+melted_moco_df_average_sale_price$year <- as.factor(melted_moco_df_average_sale_price$year)
+melted_moco_df_average_sale_price$month <- factor(melted_moco_df_average_sale_price$month,
+                                          levels = c('January', 'February', 'March', 'April', 'May',  'June', 'July', 'August', 'September', 'October'))
+
+ggplot(data = melted_moco_df_average_sale_price,
+       aes(x = month, y = value,
+                                 color = year,
+           group = year)) + 
+ geom_line() +
+  geom_point(aes(size = 1.5)) + 
+  
+  xlab('Month') + guides(size = FALSE) + 
+  ylab('Average Sale Price') + theme_bw()
+```
+
+#### % Change in Average Sale Price
+
+```{r}
+average_sale_price_2022 <- melted_moco_df_average_sale_price$value[melted_moco_df_average_sale_price$year == 2022]
+average_sale_price_2021 <- melted_moco_df_average_sale_price$value[melted_moco_df_average_sale_price$year == 2021]
+
+average_sale_price_pct_diff <- ((average_sale_price_2022 - average_sale_price_2021)/average_sale_price_2021) * 100
+
+
+average_sale_price_diff_df <- data.frame('pct_diff' = average_sale_price_pct_diff, 'month' = unique(melted_moco_df_average_sale_price$month))
+
+average_sale_price_diff_df$color_code <- 'green'
+average_sale_price_diff_df$color_code[average_sale_price_diff_df$pct_diff < 0] <- 'red'
+
+
+ggplot(data = average_sale_price_diff_df, 
+       aes(x = month, y = pct_diff, fill = color_code)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label=round(pct_diff, 2)), position=position_dodge(width=0.9), vjust=-0.1) +
+  theme_bw() + ylab('% Change in \n Average Sale Price') + xlab('') + scale_fill_identity()
+
+
+
+```
+
+### Median Sale Price
+
+```{r}
+
+melted_moco_df_median_sale_price <- melted_moco_df_jan_november[grep('median_sale_price_[0-9]',melted_moco_df_jan_november$variable),]
+
+melted_moco_df_median_sale_price$value <- as.numeric(melted_moco_df_median_sale_price$value)
+melted_moco_df_median_sale_price$year <- as.factor(melted_moco_df_median_sale_price$year)
+melted_moco_df_median_sale_price$month <- factor(melted_moco_df_median_sale_price$month,
+                                          levels = c('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'))
+
+ggplot(data = melted_moco_df_median_sale_price,
+       aes(x = month, y = value,
+                                 color = year,
+           group = year)) + 
+ geom_line() +
+  geom_point(aes(size = 1.5)) + 
+  
+  xlab('Month') + guides(size = FALSE) + 
+  ylab('Median Sale Price') + theme_bw()
+```
+
+#### % Change in Median Sale Price
+
+```{r}
+median_sale_price_2022 <- melted_moco_df_median_sale_price$value[melted_moco_df_median_sale_price$year == 2022]
+median_sale_price_2021 <- melted_moco_df_median_sale_price$value[melted_moco_df_median_sale_price$year == 2021]
+
+median_sale_price_pct_diff <- ((median_sale_price_2022 - median_sale_price_2021)/median_sale_price_2021) * 100
+
+
+median_sale_price_diff_df <- data.frame('pct_diff' = median_sale_price_pct_diff, 'month' = unique(melted_moco_df_median_sale_price$month))
+
+median_sale_price_diff_df$color_code <- 'green'
+median_sale_price_diff_df$color_code[median_sale_price_diff_df$pct_diff < 0] <- 'red'
+
+
+ggplot(data = median_sale_price_diff_df, 
+       aes(x = month, y = pct_diff, fill = color_code)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label=round(pct_diff, 2)), position=position_dodge(width=0.9), vjust=-0.1) +
+  theme_bw() + ylab('% Change in \n Median Sale Price') + xlab('') + scale_fill_identity()
+
+
+
+```
+
+### Median Days on Market
+
+```{r}
+melted_moco_df_median_dom <- melted_moco_df_jan_november[grep('median_dom_[0-9]',melted_moco_df_jan_november$variable),]
+
+melted_moco_df_median_dom$value <- as.numeric(melted_moco_df_median_dom$value)
+melted_moco_df_median_dom$year <- as.factor(melted_moco_df_median_dom$year)
+melted_moco_df_median_dom$month <- factor(melted_moco_df_median_dom$month,
+                                          levels = c('January', 'February', 'March', 'April', 'May',
+                                                     'June', 'July', 'August', 'September', 'October'))
+
+ggplot(data = melted_moco_df_median_dom,
+       aes(x = month, y = value,
+                                 color = year,
+           group = year)) + 
+ geom_line() +
+  geom_point(aes(size = 1.5)) + 
+  
+  xlab('Month') + guides(size = FALSE) + 
+  ylab('Median DOM') + theme_bw()
+```
+
+#### % Change in Median Days on Market
+
+```{r}
+median_dom_2022 <- melted_moco_df_median_dom$value[melted_moco_df_median_dom$year == 2022]
+median_dom_2021 <- melted_moco_df_median_dom$value[melted_moco_df_median_dom$year == 2021]
+
+
+
+median_dom_pct_diff <- ((median_dom_2022 - median_dom_2021)/median_dom_2021) * 100
+
+
+median_dom_diff_df <- data.frame('pct_diff' = median_dom_pct_diff, 'month' = unique(melted_moco_df_median_dom$month))
+
+median_dom_diff_df$color_code <- 'green'
+median_dom_diff_df$color_code[median_dom_diff_df$pct_diff < 0] <- 'red'
+
+
+ggplot(data = median_dom_diff_df, 
+       aes(x = month, y = pct_diff, fill = color_code)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label=round(pct_diff, 2)), position=position_dodge(width=0.9), vjust=-0.1) +
+  theme_bw() + ylab('% Change in DOM') + xlab('') + scale_fill_identity()
+```
+
+### Months of Inventory
+
+```{r}
+melted_moco_df_months_of_inventory <- melted_moco_df_jan_november[grep('months_of_inventory_[0-9]',melted_moco_df_jan_november$variable),]
+
+melted_moco_df_months_of_inventory$value <- as.numeric(melted_moco_df_months_of_inventory$value)
+melted_moco_df_months_of_inventory$year <- as.factor(melted_moco_df_months_of_inventory$year)
+melted_moco_df_months_of_inventory$month <- factor(melted_moco_df_months_of_inventory$month,
+                                          levels = c('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'))
+
+ggplot(data = melted_moco_df_months_of_inventory,
+       aes(x = month, y = value,
+                                 color = year,
+           group = year)) + 
+ geom_line() +
+  geom_point(aes(size = 1.5)) + 
+  
+  xlab('Month') + guides(size = FALSE) + 
+  ylab('Months of Inventory') + theme_bw()
+```
+
+#### % Change in Months of Inventory
+
+```{r}
+
+
+
+months_of_inventory_2022 <- melted_moco_df_months_of_inventory$value[melted_moco_df_months_of_inventory$year == 2022]
+months_of_inventory_2021 <- melted_moco_df_months_of_inventory$value[melted_moco_df_months_of_inventory$year == 2021]
+
+months_of_inventory_pct_diff <- ((months_of_inventory_2022 - months_of_inventory_2021)/months_of_inventory_2021) * 100
+
+
+months_of_inventory_diff_df <- data.frame('pct_diff' = months_of_inventory_pct_diff, 'month' = unique(melted_moco_df_months_of_inventory$month))
+
+months_of_inventory_diff_df$color_code <- 'green'
+months_of_inventory_diff_df$color_code[months_of_inventory_diff_df$pct_diff < 0] <- 'red'
+
+
+ggplot(data = months_of_inventory_diff_df, 
+       aes(x = month, y = pct_diff, fill = color_code)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label=round(pct_diff, 2)), position=position_dodge(width=0.9), vjust=-0.1) +
+  theme_bw() + ylab('% Change in \n Months of Inventory') + xlab('')  + scale_fill_identity()
+```
+
+### New Listings
+
+```{r}
+melted_moco_df_new_listings <- melted_moco_df_jan_november[grep('new_listings_[0-9]',melted_moco_df_jan_november$variable),]
+
+melted_moco_df_new_listings$value <- as.numeric(melted_moco_df_new_listings$value)
+melted_moco_df_new_listings$year <- as.factor(melted_moco_df_new_listings$year)
+melted_moco_df_new_listings$month <- factor(melted_moco_df_new_listings$month,
+                                          levels = c('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October'))
+
+ggplot(data = melted_moco_df_new_listings,
+       aes(x = month, y = value,
+                                 color = year,
+           group = year)) + 
+ geom_line() +
+  geom_point(aes(size = 1.5)) + 
+  
+  xlab('Month') + guides(size = FALSE) + 
+  ylab('New Listings') + theme_bw()
+```
+
+#### % Change in New Listings
+
+```{r}
+
+
+
+new_listings_2022 <- melted_moco_df_new_listings$value[melted_moco_df_new_listings$year == 2022]
+new_listings_2021 <- melted_moco_df_new_listings$value[melted_moco_df_new_listings$year == 2021]
+
+new_listings_pct_diff <- ((new_listings_2022 - new_listings_2021)/new_listings_2021) * 100
+
+
+new_listings_diff_df <- data.frame('pct_diff' = new_listings_pct_diff, 'month' = unique(melted_moco_df_new_listings$month))
+
+new_listings_diff_df$color_code <- 'green'
+new_listings_diff_df$color_code[new_listings_diff_df$pct_diff < 0] <- 'red'
+
+
+ggplot(data = new_listings_diff_df, 
+       aes(x = month, y = pct_diff, fill = color_code)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label=round(pct_diff, 2)), position=position_dodge(width=0.9), vjust=-0.1) +
+  theme_bw() + ylab('% Change in \n New Listings') + xlab('')  + scale_fill_identity()
+```
+
+## Conclusions: Montgomery County
+
+-   Units sold is down from January through October
+
+    -   October showed the largest decline in units sold at - 38.13%. Units sold has been negative throughout the year with declines above 20% since June
+
+-   Units pending is also down from January through October with October showing the largest decrease. Since February YoY decline in units pending has been increasing.
+
+-   2022 active inventory is also down compared to 2021 levels. However, it improved every single month from January 2022 till June 2022. but July there was a slight decline compared to June
+
+    -   In January the YoY % difference was -50% but in October the YoY % difference was -28.67%
+
+-   Average sale price was lower in January 2022 compared to January 2021.
+
+    -   Average sale price had a slight uptick in October 2022 compared to September 2022. Average sale price declined by \$102,350 from May to October 2022. October average prices were below the average prices of March 2022
+    -   Average sale price is higher in 2022 compared to 2021. In October YoY increase was 1.17%. Slowest growth since January
+
+-   Median sale price gradually increased every single month since February 2022 to May 2022
+
+    -   Median price also slightly increased in October however it showed the first YoY decline since January
+    -   Median sale price declined by around \$87,500 from May to October 2022
+
+-   Median Days on Market is higher in January 2022 compared to January 2021 by 2 days. From February through May there was no change in median days on market between 2022 and 2021. In October median DOM increased by 2 days.
+
+-   Months of Inventory has been down throughout 2022; However, it has been gradually increasing since January with a decline in August compared to July. In January YoY change in months of inventory was -55.56% and in October it improved to -16.67%
+
+-   New Listings has been down throughout 2022 except for in February. October showed the largest decrease in new listings decline at 32.58%.
+
+::: {.tocify-extend-page data-unique="tocify-extend-page" style="height: 0;"}
+:::
