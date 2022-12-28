@@ -600,23 +600,22 @@ ggplot(aes(x = reorder(just_county_name, new_listings_change), y = new_listings_
 Maryland consists of 23 counties and Baltimore City. Altogether 24 regions.
 
 - Units sold is down in every county except for Dorchester county
-  - Range of % YoY Change in Units sold is -51% to 15%
-- Pending Sales is down in all but Allegany county
-  - Range of % YoY Change in Units pending  is -52% to 34%
+  - Range of % YoY Change in Units sold is -52% to 4.65%
+- Pending Sales is down in every single county
+  - Range of % YoY Change in Units pending  is -60% to -2%
 - Active Inventory is up in 5/24 regions
   - Range of % YoY Change in Active Inventory is -39.2% to 25.4%
-- Average sale price is down in 3/24 regions 
-  - Range of % YoY Change in Average Sale Price is -8.23% to 24.9%
-- Median sale price is down in 6/24 regions 
-  - Range of % YoY Change in Median Sale Price is -15.9% to 27%
-- Median days on market is down in 3/24 regions and Median DOM is up in 20/24 regions. In 1/24 regions median DOM is unchanged
-  - In Somerset county YoY median DOM decreased by 16 days and in Garett county it increased by 12 days
+- Average sale price is down in 7/24 regions 
+  - Range of % YoY Change in Average Sale Price is -35% to 60.3%
+- Median sale price is down in 7/24 regions and unchanged in one region
+  - Range of % YoY Change in Median Sale Price is -18.7% to 58%
+- Median days on market is down in 4/24 regions and Median DOM is up in 20/24 region. 
+  - In Kent county YoY median DOM decreased by 11 days and in Somerset county it increased by 15 days  
+- Months of inventory is up in 15 counties and unchanged in 5 counties. In rest of the regions months of inventory is down.
+  - Range of % YoY Change in Months of Inventory is -22.2% to 66.7%
+- New Listings are down in all of the regions.
+  - Range of % YoY Change in New Listings is -41.7% to -8.24%
   
-- Months of inventory is up in 11 counties and unchanged in 3 counties. In rest of the regions months of inventory is down.
-  - Range of % YoY Change in Months of Inventory is -32.4% to 61.9%
-
-- New Listings are down in all of the regions except for Allegany and Talbot counties.
-  - Range of % YoY Change in New Listings is -46.3% to 4.76%
   
 ```{r, fig.width=25, fig.height=15}
 
@@ -1032,27 +1031,27 @@ ggplot(data = new_listings_diff_df,
 ```
 
 ## Conclusions: Montgomery County
-  
-- Units sold is down from January through October 
-  - October showed the largest decline in units sold at - 38.13%. Units sold has been negative throughout
+- Units sold is down from January through November 
+  - November showed the largest decline in units sold at -39.06%. Units sold has been negative throughout
   the year with declines above 20% since June
   
-- Units pending is also down from January through October with October showing the largest decrease. Since February YoY decline in units pending has been increasing.
+- Units pending is also down from January through November with November showing the largest decrease. Since February YoY decline in units pending has been increasing.
 
-- 2022 active inventory is also down compared to 2021 levels. However, it improved every single month from January 2022 till June 2022. but July there was a slight decline compared to June
-  - In January the YoY % difference was -50% but in October the YoY % difference was -28.67%
+- 2022 active inventory is also down compared to 2021 levels. November decrease was the lowest since January 2022.
+-	However, it improved every single month from January 2022 till June 2022. but July there was a slight decline compared to June
+  - In January the YoY % difference was -50% but in November the YoY % difference was -13.3%
   
 - Average sale price was lower in January 2022 compared to January 2021. 
-  - Average sale price had a slight uptick in October 2022 compared to September 2022. Average sale price declined by $102,350 from May to October 2022. October average prices were below the average prices of March 2022
-  - Average sale price is higher in 2022 compared to 2021. In October YoY increase was 1.17%. Slowest growth since January
+  - Average sale price had an uptick in November 2022 compared to October 2022. Average sale price declined by $85,202 from May to November 2022. November average prices were about the  same as the average prices of March 2022.
+  - Average sale price is higher in 2022 compared to 2021. In November YoY increase was 5.95%.
 
 - Median sale price gradually increased every single month since February 2022 to May 2022 
-  - Median price also slightly increased in October however it showed the first YoY decline since January
-  - Median sale price declined by around $87,500 from May to October 2022
+  - Median price also slightly increased in November but the increase was only 1.98%
+  - Median sale price declined by around $80,000 from May to November 2022
  
-- Median Days on Market is higher in January 2022 compared to January 2021 by 2 days. From February through May there was no change in median days on market between 2022 and 2021. In October median DOM increased by 2 days.
-- Months of Inventory has been down throughout 2022; However, it has been gradually increasing since January with a decline in August compared to July. In January YoY change in months of inventory was -55.56% and in October it improved to -16.67%
-- New Listings has been down throughout 2022 except for in February. October showed the largest decrease in new listings decline at 32.58%.
+- Median Days on Market is higher in January 2022 compared to January 2021 by 2 days. From February through May there was no change in median days on market between 2022 and 2021. In November median DOM increased by 2 days.
+- Months of Inventory has been down throughout 2022; However, for the first time YoY change in months of inventory was positive. It increased from 0.9 in November 2021 to 1.0 in November 2022.
+- New Listings has been down throughout 2022 except for in February. YoY change in new listings improved in November compared to October. YoY change in New listing is better in November compared to July - October. 
 
 
 
